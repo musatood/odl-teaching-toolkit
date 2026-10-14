@@ -2262,7 +2262,7 @@ table.t{border-collapse:collapse;width:100%;font-size:.88rem}table.t th,table.t 
 
 <script>
 /* ===== إعداد: ضع رابط تطبيق Google Apps Script هنا ===== */
-const SHEET_URL='https://script.google.com/macros/s/AKfycbw0yUzAVHnEHks-t98BX2udX_ZRtgCZll4VivrTTsfYCQpdpU_rbZ_7Al4EV-umWLSx/exec';
+const SHEET_URL='';
 const claude={use:async()=>null};
 let TP='';
 async function api(q){const r=await fetch(SHEET_URL+'?'+new URLSearchParams(q));return r.json()}
@@ -2390,17 +2390,27 @@ function startExam(){const nm=$('nm').value.trim(),wa=$('wa').value.replace(/[\s
   if(x.t=='fl')h+=`<input type="text" name="q${n}">`;h+='</div>'});
  h+='<button class="b" onclick="finish()">إنهاء وإرسال الدرجة</button></div>';b.innerHTML=h;window.scrollTo(0,0)}
 function val(n){const x=document.querySelector('[name=q'+n+']');if(!x)return '';if(x.type=='radio'){const c=document.querySelector('[name=q'+n+']:checked');return c?c.value:''}return x.value.trim()}
+const TOPICS=['الفرق بين التعليم الإلكتروني والتعليم عن بُعد','مفهوم الانفتاح في التعليم المفتوح','تاريخ التعليم عن بُعد وأجياله','الموارد التعليمية المفتوحة','تراخيص المشاع الإبداعي','الاتساق البنائي في تصميم المقرر','النظريات الأساسية: المسافة التبادلية','النظريات الأساسية: التعلم المستقل','تراخيص المشاع الإبداعي','التعليم المدمج','الصف المقلوب','التحديات الواقعية وضعف الإنترنت','مفهوم التعليم عن بُعد','النظريات الأساسية: المحادثة الموجّهة','تراخيص المشاع الإبداعي','التعليم المدمج'];
+function level(p){return p>=90?'ممتاز':p>=80?'جيد جداً':p>=70?'جيد':p>=60?'مقبول':'يحتاج إلى مراجعة معمّقة'}
+function rec(p){return p>=85?'أداء متميز. ننصحكم بتطبيق ما تعلّمتموه بتصميم وحدة من أحد مقرراتكم وفق مبادئ الاتساق البنائي.':p>=60?'أداء مقبول. راجعوا المحاور المذكورة في الشرح والمراجعة، ثم طبّقوا ما تعلّمتموه في أحد مقرراتكم.':'ننصحكم بإعادة دراسة وحدات الحقيبة المرتبطة بالمحاور المذكورة، والاستعانة بقسم المراجعة والاستماع إلى الشرح، ثم إعادة الاختبار.'}
+function buildMsg(r,rows){const sc=+r.score,tot=+r.total,p=Math.round(sc/tot*100),wr=rows.filter(x=>!x.ok),wk=[...new Set(wr.map(x=>TOPICS[x.n-1]))],st=[...new Set(TOPICS)].filter(t=>!wk.includes(t));
+ let m='السلام عليكم ورحمة الله وبركاته\n\nحضرة '+r.name+' المحترم/ة،\nنشكركم على إتمام اختبار الحقيبة التدريبية «التدريس في التعليم المفتوح وعن بُعد».\n\n📊 النتيجة: '+sc+' من '+tot+' ('+p+'%)\n🏅 المستوى: '+level(p)+'\n';
+ if(st.length)m+='\n✅ محاور تمكّنتم منها:\n'+st.map(t=>'• '+t).join('\n')+'\n';
+ if(wk.length)m+='\n📚 محاور تحتاج إلى مراجعة:\n'+wk.map(t=>'• '+t).join('\n')+'\n';
+ if(wr.length)m+='\n❌ الأسئلة التي لم تصحّ إجابتها (مع الإجابة الصحيحة):\n'+wr.map(x=>'س'+x.n+': '+x.c).join('\n')+'\n';
+ return m+'\n💡 التوصية: '+rec(p)+'\n\nمع خالص التقدير،\nفريق التدريب'}
 async function finish(){const rows=[];let sc=0;
  ALL.forEach((x,n)=>{const a=val(n);let ok=false,exp='';
   if(x.t=='tf'){ok=a!==''&&(a=='1')==TF[x.i][1];exp=TF[x.i][1]?'صح':'خطأ';rows.push({n:n+1,q:x.q,a:a===''?'':(a=='1'?'صح':'خطأ'),c:exp,ok})}
   if(x.t=='mc'){ok=a!==''&&+a==MC[x.i][2];rows.push({n:n+1,q:x.q,a:a===''?'':MC[x.i][1][+a],c:MC[x.i][1][MC[x.i][2]],ok})}
   if(x.t=='fl'){ok=FL[x.i][1].some(z=>norm(z)==norm(a));rows.push({n:n+1,q:x.q,a,c:FL[x.i][1][0],ok})}
-  if(ok)sc++});
+  if(ok)sc++});rows.forEach((r,i)=>{if(ALL[i].t=='tf')r.e=TF[ALL[i].i][2]});
  const t1=new Date(),res={...me,score:sc,total:ALL.length,start:t0.toISOString(),end:t1.toISOString(),mins:Math.round((t1-t0)/600)/100,right:rows.filter(r=>r.ok).map(r=>r.n).join('، '),wrong:rows.filter(r=>!r.ok).map(r=>r.n).join('، '),rows:JSON.stringify(rows)};
  await save(res);
- const msg=`السلام عليكم ${me.name}\nنتيجتك في اختبار الحقيبة التدريبية: ${sc} من ${ALL.length} (${Math.round(sc/ALL.length*100)}%)\nالأسئلة الخاطئة: ${res.wrong||'لا يوجد'}\nشكراً لمشاركتك.`;
+ const msg=buildMsg(res,rows);
  const link='https://wa.me/'+me.wa+'?text='+encodeURIComponent(msg);
- $('ebody').innerHTML=`<div class="card"><div class="scr">${sc} / ${ALL.length}</div><p style="text-align:center">${Math.round(sc/ALL.length*100)}%</p><p>تم حفظ نتيجتك. اضغط الزر لإرسال الدرجة إلى واتسابك (+${me.wa}).</p><a class="b" href="${link}" target="_blank" rel="noopener">📲 إرسال الدرجة إلى الواتساب</a> <button class="b s" onclick="copyMsg()">📋 نسخ الرسالة</button></div><div class="card"><h3>مراجعة إجاباتك</h3>${rows.map(r=>`<div class="q"><b>${r.n}. ${r.q}</b><div style="color:var(--${r.ok?'ok':'no'})">${r.ok?'✅':'❌'} إجابتك: ${r.a||'—'}</div>${r.ok?'':'<div>الصحيحة: '+r.c+'</div>'}</div>`).join('')}</div>`;
+ const p=Math.round(sc/ALL.length*100),wr=rows.filter(x=>!x.ok),wk=[...new Set(wr.map(x=>TOPICS[x.n-1]))],st=[...new Set(TOPICS)].filter(t=>!wk.includes(t));
+ $('ebody').innerHTML=`<div class="card"><div class="scr">${sc} / ${ALL.length}</div><p style="text-align:center;margin:0">${p}% — <b>${level(p)}</b></p><p>تم حفظ نتيجتكم. اضغطوا الزر لاستلام التقرير المفصّل على واتساب (+${me.wa}).</p>${st.length?'<h3 style="color:var(--ok)">✅ محاور تمكّنتم منها</h3><ul>'+st.map(t=>'<li>'+t+'</li>').join('')+'</ul>':''}${wk.length?'<h3 style="color:var(--no)">📚 محاور تحتاج إلى مراجعة</h3><ul>'+wk.map(t=>'<li>'+t+'</li>').join('')+'</ul>':''}<p><b>💡 التوصية:</b> ${rec(p)}</p><a class="b" href="${link}" target="_blank" rel="noopener">📲 إرسال التقرير إلى الواتساب</a> <button class="b s" onclick="copyMsg()">📋 نسخ الرسالة</button></div><div class="card"><h3>مراجعة تفصيلية للإجابات</h3>${rows.map(r=>`<div class="q"><b>${r.n}. ${r.q}</b><div style="color:var(--${r.ok?'ok':'no'})">${r.ok?'✅ إجابة صحيحة':'❌ إجابتكم: '+(r.a||'لم تُجب')}</div>${r.ok?'':'<div>الإجابة الصحيحة: <b>'+r.c+'</b></div>'+(r.e?'<div class="note">'+r.e+'</div>':'')}<div class="note">المحور: ${TOPICS[r.n-1]}</div></div>`).join('')}</div>`;
  window.MSG=msg;window.scrollTo(0,0)}
 function copyMsg(){try{navigator.clipboard.writeText(window.MSG);alert('تم نسخ الرسالة')}catch(e){prompt('انسخ الرسالة:',window.MSG)}}
 async function save(r){try{const a=JSON.parse(localStorage.getItem('results')||'[]');a.push(r);localStorage.setItem('results',JSON.stringify(a))}catch(e){}
@@ -2413,7 +2423,7 @@ async function loadRes(){let a=[];try{const j=await api({action:'list',pin:TP});
  try{JSON.parse(localStorage.getItem('results')||'[]').forEach(x=>{if(!a.some(y=>y.start==x.start&&y.wa==x.wa))a.push(x)})}catch(e){}
  R=a.sort((x,y)=>x.start<y.start?1:-1);$('tcount').textContent='عدد المتدربين الذين أنهوا الاختبار: '+R.length;
  $('ttab').innerHTML='<tr><th>الاسم</th><th>الواتساب</th><th>البريد</th><th>الدرجة</th><th>صحيحة</th><th>خاطئة</th><th>البداية</th><th>الدقائق</th><th>واتساب</th></tr>'+R.map(r=>`<tr><td>${esc(r.name)}</td><td dir="ltr">${esc(r.wa)}</td><td>${esc(r.email||'')}</td><td>${r.score}/${r.total}</td><td>${r.right}</td><td>${r.wrong}</td><td dir="ltr">${new Date(r.start).toLocaleString('ar')}</td><td>${r.mins}</td><td><a class="b" style="padding:4px 10px" target="_blank" rel="noopener" href="${waLink(r)}" title="إرسال الدرجة عبر واتساب">📲</a></td></tr>`).join('')}
-function waLink(r){return 'https://wa.me/'+String(r.wa).replace(/\D/g,'')+'?text='+encodeURIComponent('السلام عليكم '+r.name+'\nنتيجتك في اختبار الحقيبة التدريبية: '+r.score+' من '+r.total+' ('+Math.round(r.score/r.total*100)+'%)\nالأسئلة الخاطئة: '+(r.wrong||'لا يوجد'))}
+function waLink(r){let rows=[];try{rows=JSON.parse(r.rows)}catch(e){}return 'https://wa.me/'+String(r.wa).replace(/\D/g,'')+'?text='+encodeURIComponent(buildMsg(r,rows))}
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 async function exportX(){if(!R.length){alert('لا توجد نتائج للتصدير');return}
  const s1=R.map(r=>({'اسم المتدرب':r.name,'واتساب المتدرب':r.wa,'البريد الإلكتروني':r.email||'','الدرجة':r.score,'الدرجة الكلية':r.total,'النسبة %':Math.round(r.score/r.total*100),'الأسئلة الصحيحة (أرقام)':r.right,'الأسئلة الخاطئة (أرقام)':r.wrong,'وقت بداية الاختبار':r.start,'وقت نهاية الاختبار':r.end,'المدة (دقائق)':r.mins}));
